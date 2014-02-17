@@ -1,3 +1,7 @@
+# A simple game of Pong using Ruby and Tk
+# Kevin McMorrow
+# Feb 2014
+
 require 'tk'
 
 FPS = 60
@@ -24,16 +28,15 @@ BALL_SPEED = 5
 BALL_MAX_SPEED = 20
 PADDLE_SPEED = 5
 
-RESTART_DELAY = 3000;
+RESTART_DELAY = 3000
 
-PLAYER1_AI = false
-PLAYER2_AI = false
+PLAYER1_AI = true
+PLAYER2_AI = true
 
-DEBUG = true
+#DEBUG = true
 
 # Sprite class
 class Sprite
-
   attr_reader :rect
 
   def initialize(canvas, x, y, width, height)
@@ -47,14 +50,15 @@ class Sprite
   end
 
   def update
-    puts "sprite update not implemented"
+    puts 'sprite update not implemented'
   end
 
   def draw
     if @canvas_obj
-      @canvas.coords(@canvas_obj, @rect[:x1], @rect[:y1], @rect[:x2], @rect[:y2])
+      @canvas.coords(@canvas_obj, @rect[:x1], @rect[:y1],
+                     @rect[:x2], @rect[:y2])
     else
-      puts "WARNING: No canvas object set"
+      puts 'WARNING: No canvas object set'
     end
   end
 
@@ -64,7 +68,7 @@ class Sprite
       @rect[:y1] < other.rect[:y2] &&
       @rect[:y2] > other.rect[:y1]
   end
-  
+
   def move(dx, dy)
     @rect[:x1] += dx
     @rect[:x2] += dx
@@ -88,19 +92,17 @@ class Sprite
   def height
     @rect[:y2] - @rect[:y1]
   end
-  
+
   def mid_point
-    return {
+    {
       x: @rect[:x1] + width / 2,
-      y: @rect[:y1] + height / 2,
+      y: @rect[:y1] + height / 2
     }
   end
-
 end
 
 # Ball
 class Ball < Sprite
-
   attr_writer :angle
   attr_accessor :speed
 
@@ -143,12 +145,10 @@ class Ball < Sprite
     end
 =end
   end
-    
 end
 
 # Paddle
 class Paddle < Sprite
-
   attr_accessor :ai
 
   def initialize(canvas, x, y, width, height, color)
@@ -176,24 +176,22 @@ class Paddle < Sprite
       move(0, HEIGHT - @rect[:y2])
     end
   end
-
 end
 
 # main game class
 class Pong
+  def initialize
+    root = setup_layout
 
-  def initialize()
-    root = setupLayout
-
-    #ball_angle = rand(90) - 45 + (180 * rand(2))
-    start_angle = deg_to_rad(rand(360))
+    #start_angle = deg_to_rad(rand(360))
+    start_angle = deg_to_rad(rand(90) - 45 + 180 * rand(2))
     @ball = Ball.new(@canvas, WIDTH / 2, HEIGHT / 2, BALL_DIAMETER,
-                     BALL_SPEED, start_angle, BALL_COLOR);
+                     BALL_SPEED, start_angle, BALL_COLOR)
     @player1 = Paddle.new(@canvas, PADDLE_OFFSET, HEIGHT / 2,
-                          PADDLE_WIDTH, PADDLE_HEIGHT, PLAYER1_COLOR);
+                          PADDLE_WIDTH, PADDLE_HEIGHT, PLAYER1_COLOR)
     @player2 = Paddle.new(@canvas, WIDTH - PADDLE_OFFSET, HEIGHT / 2,
-                          PADDLE_WIDTH, PADDLE_HEIGHT, PLAYER2_COLOR);
-    
+                          PADDLE_WIDTH, PADDLE_HEIGHT, PLAYER2_COLOR)
+
     @player1.ai = PLAYER1_AI
     @player2.ai = PLAYER2_AI
 
@@ -201,8 +199,8 @@ class Pong
     @player2_score = 0
 
     @running = false
-    
-    bindEvents root
+
+    bind_events root
 
   end
 
@@ -212,10 +210,20 @@ class Pong
     Tk.mainloop
   end
 
+  def toggle_player1_ai
+    @player1.ai = !@player1.ai
+    @player1.stop_moving
+  end
+
+  def toggle_player2_ai
+    @player2.ai = !@player2.ai
+    @player2.stop_moving
+  end
+
   private
 
   # create window components
-  def setupLayout
+  def setup_layout
     root = TkRoot.new do
       title 'Pong'
     end
@@ -230,42 +238,50 @@ class Pong
       foreground SCORE_COLOR
       pack('side' => 'left', 'padx' => '10', 'pady' => '0')
     end
-    
+
     @player2_score_label = TkLabel.new(score_frame) do
       text '0'
       font TkFont.new('sans 26 bold')
       foreground SCORE_COLOR
       pack('side' => 'left', 'padx' => '10', 'pady' => '0')
     end
-    
+
     @canvas = TkCanvas.new(root) do
       width WIDTH
       height HEIGHT
       background BACKGROUND_COLOR
       pack('side' => 'top')
     end
-    
+
+    this = self
+    TkCheckButton.new(root) do
+      text 'Player 1 AI'
+      command(select) if PLAYER1_AI
+      place('height' => 25, 'width' => 100, 'x' => 0, 'y' => 10)
+      command(proc { this.toggle_player1_ai })
+    end
+
+    TkCheckButton.new(root) do
+      text 'Player 2 AI'
+      command(select) if PLAYER2_AI
+      place('height' => 25, 'width' => 100, 'x' => WIDTH - 100, 'y' => 10)
+      command(proc { this.toggle_player2_ai })
+    end
+
     root
   end
 
-
-  private
-
   # setup event handlers
-  def bindEvents(root)
-    unless @player2.ai
-      root.bind('KeyPress-Up', proc { @player2.start_moving UP})
-      root.bind('KeyRelease-Up', proc { @player2.stop_moving })
-      root.bind('KeyPress-Down', proc { @player2.start_moving DOWN })
-      root.bind('KeyRelease-Down', proc { @player2.stop_moving })
-    end
+  def bind_events(root)
+    root.bind('KeyPress-Up', proc { @player2.start_moving UP })
+    root.bind('KeyRelease-Up', proc { @player2.stop_moving })
+    root.bind('KeyPress-Down', proc { @player2.start_moving DOWN })
+    root.bind('KeyRelease-Down', proc { @player2.stop_moving })
 
-    unless @player1.ai
-      root.bind('KeyPress-w', proc { @player1.start_moving UP })
-      root.bind('KeyRelease-w', proc { @player1.stop_moving })
-      root.bind('KeyPress-s', proc { @player1.start_moving DOWN })
-      root.bind('KeyRelease-s', proc { @player1.stop_moving })
-    end
+    root.bind('KeyPress-w', proc { @player1.start_moving UP })
+    root.bind('KeyRelease-w', proc { @player1.stop_moving })
+    root.bind('KeyPress-s', proc { @player1.start_moving DOWN })
+    root.bind('KeyRelease-s', proc { @player1.stop_moving })
   end
 
   def update
@@ -292,11 +308,11 @@ class Pong
     @player2_score_label.configure('text' => @player2_score.to_s)
   end
 
-  def update_ai player
+  def update_ai(player)
     if player.rect[:y1] > @ball.rect[:y2]
-        player.start_moving UP
+      player.start_moving UP
     end
-    if player.rect[:y2] < @ball.rect[:y1] 
+    if player.rect[:y2] < @ball.rect[:y1]
       player.start_moving DOWN
     end
   end
@@ -334,13 +350,13 @@ class Pong
     @running = false
     @ball.set_position(WIDTH / 2, HEIGHT / 2)
     @ball.speed = BALL_SPEED
-    @ball.angle = deg_to_rad(rand(360))
+    @ball.angle = deg_to_rad(rand(90) - 45 + 180 * rand(2))
     @player1.set_position(PADDLE_OFFSET, HEIGHT / 2)
     @player2.set_position(WIDTH - PADDLE_OFFSET, HEIGHT / 2)
-    
+
     Tk.after(RESTART_DELAY, proc { @running = true })
   end
-  
+
 end
 
 ###################
@@ -364,4 +380,3 @@ end
 
 # start the game
 Pong.new.start
-
